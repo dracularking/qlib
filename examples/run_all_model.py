@@ -13,6 +13,7 @@ import tempfile
 import functools
 import statistics
 import subprocess
+import platform
 from datetime import datetime
 from ruamel.yaml import YAML
 from pathlib import Path
@@ -68,10 +69,22 @@ def create_env():
     env_path = Path(temp_dir).absolute()
     sys.stderr.write(f"Creating Virtual Environment with path: {env_path}...\n")
     execute(f"conda create --prefix {env_path} python=3.7 -y")
-    python_path = env_path / "bin" / "python"  # TODO: FIX ME!
+    # Fix python path for Windows
+    if platform.system() == "Windows":
+        python_path = env_path / "Scripts" / "python.exe"
+    else:
+        python_path = env_path / "bin" / "python"  # TODO: FIX ME!
     sys.stderr.write("\n")
     # get anaconda activate path
-    conda_activate = Path(os.environ["CONDA_PREFIX"]) / "bin" / "activate"  # TODO: FIX ME!
+    # Handle case where CONDA_PREFIX is not set
+    if "CONDA_PREFIX" in os.environ:
+        if platform.system() == "Windows":
+            conda_activate = Path(os.environ["CONDA_PREFIX"]) / "Scripts" / "activate.bat"
+        else:
+            conda_activate = Path(os.environ["CONDA_PREFIX"]) / "bin" / "activate"  # TODO: FIX ME!
+    else:
+        # Fallback when conda is not used
+        conda_activate = None
     return temp_dir, env_path, python_path, conda_activate
 
 
@@ -326,8 +339,13 @@ class ModelRunner:
                 execute(
                     f"{python_path} -m pip install light-the-torch", wait_when_err=wait_when_err
                 )  # for automatically installing torch according to the nvidia driver
+                # Fix path for Windows
+                if platform.system() == "Windows":
+                    ltt_path = env_path / "Scripts" / "ltt.exe"
+                else:
+                    ltt_path = env_path / "bin" / "ltt"
                 execute(
-                    f"{env_path / 'bin' / 'ltt'} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}",
+                    f"{ltt_path} install --install-cmd '{python_path} -m pip install {{packages}}' -- -r {req_path}",
                     wait_when_err=wait_when_err,
                 )
             else:
@@ -361,8 +379,13 @@ class ModelRunner:
             # run workflow_by_config for multiple times
             for i in range(times):
                 sys.stderr.write(f"Running the model: {fn} for iteration {i+1}...\n")
+                # Fix path for Windows
+                if platform.system() == "Windows":
+                    qrun_path = env_path / "Scripts" / "qrun.exe"
+                else:
+                    qrun_path = env_path / "bin" / "qrun"
                 errs = execute(
-                    f"{python_path} {env_path / 'bin' / 'qrun'} {yaml_path} {fn} {exp_folder_name}",
+                    f"{python_path} {qrun_path} {yaml_path} {fn} {exp_folder_name}",
                     wait_when_err=wait_when_err,
                 )
                 if errs is not None:
