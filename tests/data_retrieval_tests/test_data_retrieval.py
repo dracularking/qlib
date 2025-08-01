@@ -3,14 +3,15 @@ from qlib.data import D
 from qlib import init
 from qlib.config import REG_CN
 from qlib.utils import exists_qlib_data
+import os
 
 
 def loadInstruments():
     # Initialize Qlib with default data if needed
-    if not exists_qlib_data("~/.qlib/qlib_data/cn_data"):
-        print("Qlib data not found. Please run 'python scripts/get_data.py' to download data.")
+    if not exists_qlib_data(os.path.expanduser("~/.qlib/qlib_data/cn_data")):
+        print("Qlib data not found. Please run 'python get_data.py' to download data.")
         return
-    
+
     # Initialize Qlib
     init(provider_uri="~/.qlib/qlib_data/cn_data", region=REG_CN)
     
@@ -24,7 +25,7 @@ def loadInstruments():
     # List instruments in the given time range
     instrument_list = D.list_instruments(
         instruments=instruments, 
-        start_time='2010-01-01', 
+        start_time='2017-12-31', 
         end_time='2017-12-31', 
         as_list=True
     )
@@ -36,7 +37,10 @@ def loadInstruments():
     return instrument_list[:6]
 
 
+
 if __name__ == "__main__":
     result = loadInstruments()
+
+
     if result:
         print(f"\nReturned result: {result}")
